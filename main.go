@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type (
@@ -22,6 +24,12 @@ type (
 		Login      LoginData
 		RecentApps []int
 		Points     int
+		Fast       bool
+		Span       int
+	}
+	Config struct {
+		Fast bool `json:"fast"`
+		Span int  `json:"timespan"`
 	}
 	Settings struct {
 		Account SettingsAccount `json:"account"`
@@ -67,6 +75,12 @@ type (
 				ID int `json:"id"`
 			} `json:"recentApps"`
 		} `json:"data"`
+	}
+	AppTime struct {
+		AppID     int    `json:"appId,omitempty"`
+		T         int    `json:"t,omitempty"`
+		SessionID int    `json:"sessionId,omitempty"`
+		Status    string `json:"status,omitempty"`
 	}
 )
 
@@ -250,13 +264,51 @@ func (c *Cube) idle() {
 	wg.Wait()
 }
 
+func (c *Cube) sendAppTime() {
+	fmt.Println("Sending app time...")
+	var wg sync.WaitGroup
+	for _, appid := range c.RecentApps {
+		wg.Add(1)
+		// postData, _ := json.Marshal(&AppTime{AppID: appid})
+		// res := c.httpPost(c.ApiUrl+"/getLauncheAppTimeSessionId", "application/json; charset=UTF-8", bytes.NewBuffer(postData))
+		// var data AppTime
+		// json.Unmarshal(res, &data)
+		go func(appid int) {
+			defer wg.Done()
+			client := &http.Client{
+				Timeout: time.Second,
+			}
+			for {
+				fmt.Printf("Adding times for %d...\n", appid)
+				postData, _ := json.Marshal(&AppTime{
+					AppID:     appid,
+					T:         5,
+					SessionID: 9999999, // seems to be the same
+					Status:    "running",
+				})
+				client.Post(c.ApiUrl+"/sendLauncheAppTime", "application/json; charset=UTF-8", bytes.NewBuffer(postData))
+				time.Sleep(time.Duration(c.Span) * time.Second)
+			}
+		}(appid)
+	}
+	wg.Wait()
+}
+
 func newCube() *Cube {
+	cCont, _ := os.ReadFile("config.json")
+	var config Config
+	json.Unmarshal(cCont, &config)
+	if config.Span == 0 {
+		config.Span = 300
+	}
 	jar, _ := cookiejar.New(nil)
 	return &Cube{
 		ApiUrl: "http://127.0.0.1:5222",
 		Client: &http.Client{
 			Jar: jar,
 		},
+		Fast: config.Fast,
+		Span: config.Span,
 	}
 }
 
@@ -279,7 +331,11 @@ func main() {
 	if cube.getRecentApps() {
 		cube.idle()
 	}
-	var exit string
-	fmt.Println("Press enter to exit...")
-	fmt.Scanln(&exit)
+	if cube.Fast {
+		cube.sendAppTime()
+	} else {
+		var exit string
+		fmt.Println("Press enter to exit...")
+		fmt.Scanln(&exit)
+	}
 }
