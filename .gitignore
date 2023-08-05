@@ -1,7 +1,7 @@
 # Binaries for programs and plugins
 *.exe
 *.exe~
-*.dll
+# *.dll
 *.so
 *.dylib
 
@@ -16,5 +16,5 @@
 
 # Other files
 .vscode
-*.bat
+# *.bat
 *.txt
