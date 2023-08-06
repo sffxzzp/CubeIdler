@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -20,26 +21,34 @@ type (
 	Cube struct {
 		ApiUrl     string
 		Client     *http.Client
-		Account    SettingsAccount
+		Account    LoginAccount
 		Login      LoginData
-		RecentApps []int
+		RandomApps []App
 		Points     int
 		Fast       bool
 		Span       int
 	}
 	Config struct {
-		Fast bool `json:"fast"`
-		Span int  `json:"timespan"`
+		Fast bool   `json:"fast"`
+		Span int    `json:"timespan"`
+		Key  string `json:"key,omitempty"`
 	}
 	Settings struct {
 		Account SettingsAccount `json:"account"`
 	}
 	SettingsAccount struct {
-		IsAutoLogin  bool   `json:"isAutoLogin"`
-		IsRememberMe bool   `json:"isRememberMe"`
-		Password     string `json:"passWord"`
 		Username     string `json:"userName"`
+		Password     string `json:"passWord"`
 		OTP          string `json:"otp"`
+		IsRememberMe bool   `json:"isRemeberMe"`
+		IsAutoLogin  bool   `json:"isAutoLogin"`
+	}
+	LoginAccount struct {
+		Username     string `json:"username"`
+		Password     string `json:"password"`
+		OTP          string `json:"otp"`
+		IsRememberMe bool   `json:"isRememberMe"`
+		IsAutoLogin  bool   `json:"isAutoLogin"`
 	}
 	Login struct {
 		ResultCode int       `json:"resultCode"`
@@ -69,12 +78,14 @@ type (
 			CMoney int    `json:"c_Money"` // don't know what this is for
 		} `json:"data"`
 	}
-	Apps struct {
-		Data struct {
-			RecentApps []struct {
-				ID int `json:"id"`
-			} `json:"recentApps"`
-		} `json:"data"`
+	App struct {
+		ID   int
+		Name string
+	}
+	Apps map[string]struct {
+		ID        int    `json:"id"`
+		Name      string `json:"name"`
+		IsWebGame bool   `json:"isWebGame"`
 	}
 	AppTime struct {
 		AppID     int    `json:"appId,omitempty"`
@@ -153,8 +164,15 @@ func (c *Cube) settings() bool {
 		fmt.Printf("Cube is not running...\n\n")
 		return false
 	} else {
+		data.Account.Username, _ = url.QueryUnescape(data.Account.Username)
 		fmt.Printf("Username: %s\n\n", data.Account.Username)
-		c.Account = data.Account
+		c.Account = LoginAccount{
+			Username:     data.Account.Username,
+			Password:     data.Account.Password,
+			OTP:          data.Account.OTP,
+			IsRememberMe: data.Account.IsRememberMe,
+			IsAutoLogin:  data.Account.IsAutoLogin,
+		}
 		return true
 	}
 }
@@ -162,11 +180,11 @@ func (c *Cube) settings() bool {
 func (c *Cube) login() bool {
 	fmt.Printf("Get login data...")
 	postData, _ := json.Marshal(c.Account)
-	res := c.httpPost(c.ApiUrl+"/login", "application/json; charset=UTF-8", bytes.NewBuffer(postData))
+	res := c.httpPost(c.ApiUrl+"/login", "application/json;charset=UTF-8", bytes.NewBuffer(postData))
 	var data Login
 	json.Unmarshal(res, &data)
-	if data.ResultCode == 11 {
-		fmt.Printf("\nID: %d\tNick Name:%s\n\n", data.Data.CubeID, data.Data.NickName)
+	if data.ResultCode == 1 {
+		fmt.Printf("\nID: %d\tNickName:%s\n\n", data.Data.CubeID, data.Data.NickName)
 		c.Login = data.Data
 		return true
 	} else {
@@ -175,24 +193,52 @@ func (c *Cube) login() bool {
 	}
 }
 
-func (c *Cube) getRecentApps() bool {
-	fmt.Printf("Get recent apps...")
-	res := c.httpPost(c.ApiUrl+"/runapp", "application/json; charset=UTF-8", bytes.NewBuffer([]byte("{\"id\":0,\"sync\":0,\"multiRunIndex\":-1}")))
+// some apps have no licenses but exists in library. what the fuck?
+func (c *Cube) getRandomApps() bool {
+	fmt.Println("Get random apps...")
+	res := c.httpGet(c.ApiUrl + "/apps")
 	var data Apps
 	json.Unmarshal(res, &data)
-	var appids []int
-	for _, app := range data.Data.RecentApps {
-		appids = append(appids, app.ID)
+	var allapps []App
+	for _, app := range data {
+		if !app.IsWebGame {
+			appName, _ := url.QueryUnescape(app.Name)
+			allapps = append(allapps, App{
+				ID:   app.ID,
+				Name: appName,
+			})
+		}
 	}
-	if len(appids) == 0 {
+	var apps []App
+	appnums := len(allapps)
+	startnums := 20
+	if appnums <= 20 {
+		startnums = appnums
+	}
+	if appnums == 0 {
 		fmt.Printf("failed!\n\n")
 		return false
 	} else {
-		for _, appid := range appids {
-			fmt.Printf("%d ", appid)
+		var sel []int
+		for len(sel) < startnums {
+			num := rand.Intn(appnums)
+			exists := false
+			for _, v := range sel {
+				if v == num {
+					exists = true
+					break
+				}
+			}
+			if !exists {
+				sel = append(sel, num)
+				apps = append(apps, allapps[num])
+			}
+		}
+		for _, app := range apps {
+			fmt.Printf("%08d\t%s\n", app.ID, app.Name)
 		}
 		fmt.Printf("\n\n")
-		c.RecentApps = appids
+		c.RandomApps = apps
 		return true
 	}
 }
@@ -249,17 +295,17 @@ func (c *Cube) getPoints() {
 func (c *Cube) idle() {
 	fmt.Println("Start idling...")
 	var wg sync.WaitGroup
-	for _, appid := range c.RecentApps {
+	for _, app := range c.RandomApps {
 		wg.Add(1)
-		go func(appid string) {
+		go func(app App) {
 			defer wg.Done()
-			fmt.Printf("Loading %s...\n", appid)
-			output, err := exec.Command("./cube.exe", appid).Output()
+			fmt.Printf("Loading %08d:%s...\n", app.ID, app.Name)
+			output, err := exec.Command("./runner.exe", strconv.Itoa(app.ID), app.Name).Output()
 			if err != nil {
 				fmt.Println(err)
 			}
 			fmt.Println(string(output))
-		}(strconv.Itoa(appid))
+		}(app)
 	}
 	wg.Wait()
 }
@@ -267,39 +313,47 @@ func (c *Cube) idle() {
 func (c *Cube) sendAppTime() {
 	fmt.Println("Sending app time...")
 	var wg sync.WaitGroup
-	for _, appid := range c.RecentApps {
+	for _, app := range c.RandomApps {
 		wg.Add(1)
 		// postData, _ := json.Marshal(&AppTime{AppID: appid})
-		// res := c.httpPost(c.ApiUrl+"/getLauncheAppTimeSessionId", "application/json; charset=UTF-8", bytes.NewBuffer(postData))
+		// res := c.httpPost(c.ApiUrl+"/getLauncheAppTimeSessionId", "application/json;charset=UTF-8", bytes.NewBuffer(postData))
 		// var data AppTime
 		// json.Unmarshal(res, &data)
-		go func(appid int) {
+		go func(app App) {
 			defer wg.Done()
 			client := &http.Client{
 				Timeout: time.Second,
 			}
-			for {
-				fmt.Printf("Adding times for %d...\n", appid)
+			for i := 0; i < 15; i++ {
+				fmt.Printf("Adding times for %08d:%s...\n", app.ID, app.Name)
+				time.Sleep(time.Duration(c.Span) * time.Second)
 				postData, _ := json.Marshal(&AppTime{
-					AppID:     appid,
+					AppID:     app.ID,
 					T:         5,
 					SessionID: 9999999, // seems to be the same
 					Status:    "running",
 				})
-				client.Post(c.ApiUrl+"/sendLauncheAppTime", "application/json; charset=UTF-8", bytes.NewBuffer(postData))
-				time.Sleep(time.Duration(c.Span) * time.Second)
+				client.Post(c.ApiUrl+"/sendLauncheAppTime", "application/json;charset=UTF-8", bytes.NewBuffer(postData))
 			}
-		}(appid)
+		}(app)
 	}
 	wg.Wait()
 }
 
 func newCube() *Cube {
-	cCont, _ := os.ReadFile("config.json")
+	cCont, err := os.ReadFile("config.json")
+	if err != nil {
+		cCont = []byte("{\"fast\": false, \"timespan\": 300}")
+	}
 	var config Config
 	json.Unmarshal(cCont, &config)
 	if config.Span == 0 {
 		config.Span = 300
+	}
+	// needs a key to limit other users
+	if config.Key != "a5d93554-0bef-4538-9c46-73832a07b29e" {
+		config.Span = 300
+		config.Fast = false
 	}
 	jar, _ := cookiejar.New(nil)
 	return &Cube{
@@ -312,7 +366,7 @@ func newCube() *Cube {
 	}
 }
 
-func main() {
+func start() {
 	cube := newCube()
 	if !cube.settings() {
 		return
@@ -328,14 +382,17 @@ func main() {
 		cube.openBoxes()
 		cube.getPoints()
 	}
-	if cube.getRecentApps() {
+	if cube.getRandomApps() {
 		cube.idle()
+		if cube.Fast {
+			cube.sendAppTime()
+		}
 	}
-	if cube.Fast {
-		cube.sendAppTime()
-	} else {
-		var exit string
-		fmt.Println("Press enter to exit...")
-		fmt.Scanln(&exit)
-	}
+}
+
+func main() {
+	start()
+	var exit string
+	fmt.Println("Press enter to exit...")
+	fmt.Scanln(&exit)
 }

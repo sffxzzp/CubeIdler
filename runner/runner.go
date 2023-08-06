@@ -14,13 +14,14 @@ type (
 	}
 )
 
-func getArgsData() int {
-	if len(os.Args) != 2 {
-		fmt.Println("Usage: CubeIdler <appid>")
+func getArgsData() (int, string) {
+	if len(os.Args) != 3 {
+		fmt.Println("Usage: CubeIdler <appid> <name>")
 		os.Exit(1)
 	}
-	ret, _ := strconv.Atoi(string(os.Args[1]))
-	return ret
+	appid, _ := strconv.Atoi(string(os.Args[1]))
+	name := os.Args[2]
+	return appid, name
 }
 
 func newCube() *cube {
@@ -46,7 +47,7 @@ func (c *cube) CubeInitialize() {
 // }
 
 func main() {
-	appid := getArgsData()
+	appid, name := getArgsData()
 
 	cube := newCube()
 	if cube.IsNeedRestartApp(uintptr(appid)) {
@@ -54,5 +55,5 @@ func main() {
 	}
 	cube.CubeInitialize()
 
-	fmt.Printf("Game %d running...", appid)
+	fmt.Printf("Game %08d: %s running...", appid, name)
 }
