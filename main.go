@@ -235,7 +235,7 @@ func (c *Cube) getRandomApps() bool {
 			}
 		}
 		for _, app := range apps {
-			fmt.Printf("%08d\t%s\n", app.ID, app.Name)
+			fmt.Printf("%08d %s\n", app.ID, app.Name)
 		}
 		fmt.Printf("\n\n")
 		c.RandomApps = apps
@@ -326,21 +326,29 @@ func (c *Cube) sendAppTime() {
 			client := &http.Client{
 				Timeout: time.Second,
 			}
-			// increase loop times to 20, to avoid that points can't reach 303.
-			for i := 0; i < 20; i++ {
-				fmt.Printf("Adding times for %08d:%s...\n", app.ID, app.Name)
-				time.Sleep(time.Duration(c.Span) * time.Second)
-				postData, _ := json.Marshal(&AppTime{
-					AppID:     app.ID,
-					T:         5,
-					SessionID: 9999999, // seems to be the same
-					Status:    "running",
-				})
-				client.Post(c.ApiUrl+"/sendLauncheAppTime", "application/json;charset=UTF-8", bytes.NewBuffer(postData))
-			}
+			fmt.Printf("%s | %08d | %s\n", time.Now().Format("15:04:05"), app.ID, app.Name)
+			postData, _ := json.Marshal(&AppTime{
+				AppID:     app.ID,
+				T:         5,
+				SessionID: 9999999, // seems to be the same
+				Status:    "running",
+			})
+			client.Post(c.ApiUrl+"/sendLauncheAppTime", "application/json;charset=UTF-8", bytes.NewBuffer(postData))
 		}(app)
 	}
 	wg.Wait()
+}
+
+func (c *Cube) getTargetPoints() int {
+	var target string
+	tPoints := 300
+	fmt.Println("Target points: ")
+	fmt.Scanln(&target)
+	res, err := strconv.Atoi(target)
+	if err == nil {
+		tPoints = res
+	}
+	return tPoints
 }
 
 func newCube() *Cube {
@@ -388,7 +396,26 @@ func start() {
 	if cube.getRandomApps() {
 		cube.idle()
 		if cube.Fast {
-			cube.sendAppTime()
+			if skip {
+				for i := 0; i < 20; i++ {
+					cube.sendAppTime()
+					fmt.Println("Waiting, be patient...")
+					time.Sleep(time.Duration(cube.Span) * time.Second)
+				}
+			} else {
+				startPoints := int(cube.Points)
+				target := cube.getTargetPoints()
+				for cube.Points-startPoints < target {
+					cube.sendAppTime()
+					fmt.Println("Waiting, be patient...")
+					time.Sleep(time.Duration(cube.Span) * time.Second)
+					cube.getPoints()
+					if cube.Points-startPoints == 0 {
+						// if no points increased, that today may have already idled, quit.
+						break
+					}
+				}
+			}
 		}
 	}
 }
