@@ -25,11 +25,9 @@ type (
 		Login      LoginData
 		RandomApps []App
 		Points     int
-		Fast       bool
 		Span       int
 	}
 	Config struct {
-		Fast bool   `json:"fast"`
 		Span int    `json:"timespan"`
 		Key  string `json:"key,omitempty"`
 	}
@@ -356,7 +354,7 @@ func (c *Cube) getTargetPoints() int {
 func newCube() *Cube {
 	cCont, err := os.ReadFile("config.json")
 	if err != nil {
-		cCont = []byte("{\"fast\": false, \"timespan\": 300}")
+		cCont = []byte("{\"timespan\": 300}")
 	}
 	var config Config
 	json.Unmarshal(cCont, &config)
@@ -366,7 +364,6 @@ func newCube() *Cube {
 	// needs a key to limit other users
 	if config.Key != "a5d93554-0bef-4538-9c46-73832a07b29e" {
 		config.Span = 300
-		config.Fast = false
 	}
 	jar, _ := cookiejar.New(nil)
 	return &Cube{
@@ -374,7 +371,6 @@ func newCube() *Cube {
 		Client: &http.Client{
 			Jar: jar,
 		},
-		Fast: config.Fast,
 		Span: config.Span,
 	}
 }
@@ -397,26 +393,24 @@ func start() {
 	}
 	if cube.getRandomApps() {
 		cube.idle()
-		if cube.Fast {
-			if skip {
-				for i := 0; i < 20; i++ {
-					cube.sendAppTime()
-					fmt.Printf("Waiting for %d seconds, be patient...\n", cube.Span)
-					time.Sleep(time.Duration(cube.Span) * time.Second)
-				}
-			} else {
-				startPoints := int(cube.Points)
-				target := cube.getTargetPoints()
-				for cube.Points-startPoints < target {
-					cube.sendAppTime()
-					fmt.Println("Waiting, be patient...")
-					time.Sleep(time.Duration(cube.Span) * time.Second)
-					cube.getPoints()
-					fmt.Printf("%d => %d | %d\n", startPoints, cube.Points, cube.Points-startPoints)
-					if cube.Points-startPoints == 0 {
-						// if no points increased, that today may have already idled, quit.
-						break
-					}
+		if skip {
+			for i := 0; i < 20; i++ {
+				cube.sendAppTime()
+				fmt.Printf("Waiting for %d seconds, be patient...\n", cube.Span)
+				time.Sleep(time.Duration(cube.Span) * time.Second)
+			}
+		} else {
+			startPoints := int(cube.Points)
+			target := cube.getTargetPoints()
+			for cube.Points-startPoints < target {
+				cube.sendAppTime()
+				fmt.Println("Waiting, be patient...")
+				time.Sleep(time.Duration(cube.Span) * time.Second)
+				cube.getPoints()
+				fmt.Printf("%d => %d | %d\n", startPoints, cube.Points, cube.Points-startPoints)
+				if cube.Points-startPoints == 0 {
+					// if no points increased, that today may have already idled, quit.
+					break
 				}
 			}
 		}
