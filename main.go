@@ -278,14 +278,16 @@ func (c *Cube) openBoxes() bool {
 
 func (c *Cube) getPoints() {
 	fmt.Printf("Get current points...")
-	res := c.httpGet("https://account.cubejoy.com/BUsers/UserInfo")
-	regex := regexp.MustCompile(`id="desuserid" ?value="([A-Za-z0-9]*?)"`)
-	match := regex.FindStringSubmatch(string(res))
-	if len(match) != 2 {
-		return
+	if c.Login.DesUserID == "" {
+		res := c.httpGet("https://account.cubejoy.com/BUsers/UserInfo")
+		regex := regexp.MustCompile(`id="desuserid" ?value="([A-Za-z0-9]*?)"`)
+		match := regex.FindStringSubmatch(string(res))
+		if len(match) != 2 {
+			return
+		}
+		c.Login.DesUserID = match[1]
 	}
-	desuserid := match[1]
-	res = c.httpGet("https://me.cubejoy.com/api/PersionalCenter/UserPointJsonp?duserid=" + desuserid)
+	res := c.httpGet("https://me.cubejoy.com/api/PersionalCenter/UserPointJsonp?duserid=" + c.Login.DesUserID)
 	res = res[1 : len(res)-1]
 	points, _ := strconv.Atoi(string(res))
 	fmt.Printf("%d\n\n", points)
@@ -324,7 +326,8 @@ func (c *Cube) sendAppTime() {
 			client := &http.Client{
 				Timeout: time.Second,
 			}
-			for i := 0; i < 15; i++ {
+			// increase loop times to 20, to avoid that points can't reach 303.
+			for i := 0; i < 20; i++ {
 				fmt.Printf("Adding times for %08d:%s...\n", app.ID, app.Name)
 				time.Sleep(time.Duration(c.Span) * time.Second)
 				postData, _ := json.Marshal(&AppTime{
