@@ -412,6 +412,7 @@ func start() {
 					fmt.Println("Waiting, be patient...")
 					time.Sleep(time.Duration(cube.Span) * time.Second)
 					cube.getPoints()
+					fmt.Printf("%d => %d | %d\n", startPoints, cube.Points, cube.Points-startPoints)
 					if cube.Points-startPoints == 0 {
 						// if no points increased, that today may have already idled, quit.
 						break
