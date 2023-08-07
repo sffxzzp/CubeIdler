@@ -404,7 +404,7 @@ func start() {
 			target := cube.getTargetPoints()
 			for cube.Points-startPoints < target {
 				cube.sendAppTime()
-				fmt.Println("Waiting, be patient...")
+				fmt.Printf("Waiting for %d seconds, be patient...\n", cube.Span)
 				time.Sleep(time.Duration(cube.Span) * time.Second)
 				cube.getPoints()
 				fmt.Printf("%d => %d | %d\n", startPoints, cube.Points, cube.Points-startPoints)
