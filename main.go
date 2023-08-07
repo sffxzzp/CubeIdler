@@ -315,7 +315,7 @@ func (c *Cube) idle() {
 }
 
 func (c *Cube) sendAppTime() {
-	fmt.Println("Sending app time...")
+	fmt.Printf("Sending app time... Current time: %s\n", time.Now().Format("15:04:05"))
 	var wg sync.WaitGroup
 	for _, app := range c.RandomApps {
 		wg.Add(1)
@@ -328,7 +328,6 @@ func (c *Cube) sendAppTime() {
 			client := &http.Client{
 				Timeout: time.Second,
 			}
-			fmt.Printf("%s | %08d | %s\n", time.Now().Format("15:04:05"), app.ID, app.Name)
 			postData, _ := json.Marshal(&AppTime{
 				AppID:     app.ID,
 				T:         5,
@@ -343,7 +342,8 @@ func (c *Cube) sendAppTime() {
 
 func (c *Cube) getTargetPoints() int {
 	var target string
-	tPoints := 300
+	// seems the limit is lower from 303 to 153, so i set the default to 150.
+	tPoints := 150
 	fmt.Printf("Target points: ")
 	fmt.Scanln(&target)
 	res, err := strconv.Atoi(target)
@@ -401,7 +401,7 @@ func start() {
 			if skip {
 				for i := 0; i < 20; i++ {
 					cube.sendAppTime()
-					fmt.Println("Waiting, be patient...")
+					fmt.Printf("Waiting for %d seconds, be patient...\n", cube.Span)
 					time.Sleep(time.Duration(cube.Span) * time.Second)
 				}
 			} else {
