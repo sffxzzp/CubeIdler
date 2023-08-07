@@ -201,7 +201,8 @@ func (c *Cube) getRandomApps() bool {
 	json.Unmarshal(res, &data)
 	var allapps []App
 	for _, app := range data {
-		if !app.IsWebGame {
+		// exclude 摇摆地牢, which is unlicensed and still in library.
+		if !app.IsWebGame && app.ID != 10000412 {
 			appName, _ := url.QueryUnescape(app.Name)
 			allapps = append(allapps, App{
 				ID:   app.ID,
@@ -310,6 +311,7 @@ func (c *Cube) idle() {
 		}(app)
 	}
 	wg.Wait()
+	fmt.Println()
 }
 
 func (c *Cube) sendAppTime() {
@@ -342,7 +344,7 @@ func (c *Cube) sendAppTime() {
 func (c *Cube) getTargetPoints() int {
 	var target string
 	tPoints := 300
-	fmt.Println("Target points: ")
+	fmt.Printf("Target points: ")
 	fmt.Scanln(&target)
 	res, err := strconv.Atoi(target)
 	if err == nil {
