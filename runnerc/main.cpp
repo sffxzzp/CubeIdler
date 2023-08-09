@@ -4,9 +4,12 @@
 #include <cube/cube_api.h>
 
 int main(int argc, char* argv[]) {
+	using namespace std;
 	int appid;
+	char* name;
 	if (argc == 2 || argc == 3) {
 		appid = atoi(argv[1]);
+		name = argv[2];
 	} else {
 		return 0;
 	}
@@ -16,5 +19,5 @@ int main(int argc, char* argv[]) {
 	if (!Cube::CubeInitialize()) {
 		return 0;
 	}
-	std::cout << "Game " << std::setw(8) << appid << " running...";
+	cout << "Game " << std::setw(8) << appid << ": " << name << " running...";
 }
