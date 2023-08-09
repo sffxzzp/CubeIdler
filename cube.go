@@ -192,8 +192,8 @@ func (c *Cube) getRandomApps() bool {
 	}
 	var apps []App
 	appnums := len(allapps)
-	startnums := 20
-	if appnums <= 20 {
+	startnums := 5
+	if appnums <= startnums {
 		startnums = appnums
 	}
 	if appnums == 0 {
