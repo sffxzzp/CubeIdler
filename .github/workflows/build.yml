@@ -12,23 +12,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v4.1.0
+        with:
+          go-version: '1.21.0'
       - name: Go build
-        uses: izumin5210/action-go-crossbuild@v1.0.0
-        with:
-          arch: 386
-          ldflags: "-s -w"
-          os: windows
-      - name: Setup MinGW
-        id: mingw
-        uses: egor-tensin/setup-mingw@v2
-        with:
-          platform: x86
-      - name: C++ build
         run: |
           sudo apt install upx
-          cd runnerc
-          i686-w64-mingw32-g++ main.cpp -I include lib/cube_api.lib -s -m32 -o runner.exe
-          mv runner.exe ../dist
+          set GOARCH=x86_64
+          set GOOS=windows
+          cd runner
+          go build -ldflags="-s -w"
+          mv runner.exe ../dist/
+          cd ..
+          go build -ldflags="-s -w"
+          mv cubeidler.exe ../dist/
+          cd dist
           upx -9 -vf --lzma --compress-icons=0 *.exe
           cd ..
       - name: Upload artifact
@@ -37,4 +36,4 @@ jobs:
           name: cubeidler
           path: |
             ~/dist
-            !~/dist/cube_api64.dll
+            !~/dist/cube_api.dll
