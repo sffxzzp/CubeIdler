@@ -16,8 +16,7 @@ jobs:
         uses: actions/setup-go@v4.1.0
         with:
           go-version: '1.21.0'
-      - name: Set up MinGW\
-        id: mingw
+      - name: Set up MinGW
         uses: egor-tensin/setup-mingw@v2
         with:
           platform: x86
@@ -26,11 +25,9 @@ jobs:
         with:
           install-only: true
       - name: Build
-        env:
-          gxx: ${{ steps.mingw.outputs.gxx }}
         run: |
           cd runnerc
-          %gxx% main.cpp -I include lib/cube_api.lib -s -m32 -o runner
+          i686-w64-mingw32-g++ main.cpp -I include lib/cube_api.lib -s -m32 -o runner
           mv runner.exe ../dist/
           cd ..
           set GOARCH=386
