@@ -43,4 +43,4 @@ jobs:
           name: cubeidler
           path: |
             ./dist
-            !./dist/cube_api.dll
+            !./dist/cube_api64.dll
