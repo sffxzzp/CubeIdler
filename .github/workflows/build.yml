@@ -33,7 +33,7 @@ jobs:
           set GOARCH=386
           set GOOS=windows
           go build -ldflags="-s -w"
-          mv cubeidler.exe ../dist/
+          mv cubeidler.exe ./dist/
           cd dist
           upx -9 -vf --lzma --compress-icons=0 *.exe
           cd ..
