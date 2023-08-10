@@ -15,6 +15,9 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/saintfish/chardet"
+	"golang.org/x/text/encoding/simplifiedchinese"
 )
 
 type (
@@ -283,9 +286,18 @@ func (c *Cube) idle() {
 		go func(app App) {
 			defer wg.Done()
 			fmt.Printf("Loading %08d:%s...\n", app.ID, app.Name)
-			output, err := exec.Command("./runner.exe", strconv.Itoa(app.ID), app.Name).Output()
+			res, err := exec.Command("./runner.exe", strconv.Itoa(app.ID), app.Name).Output()
 			if err != nil {
 				fmt.Println(err)
+			}
+			var output []byte
+			det := chardet.NewTextDetector()
+			enc, _ := det.DetectBest(res)
+			switch enc.Charset {
+			case "UTF-8":
+				output = res
+			default:
+				output, _ = simplifiedchinese.GB18030.NewDecoder().Bytes(res)
 			}
 			fmt.Println(string(output))
 		}(app)
