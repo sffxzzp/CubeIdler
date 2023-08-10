@@ -30,10 +30,12 @@ type (
 		Points     int
 		Fast       bool
 		Span       int
+		Num        int
 	}
 	Config struct {
-		Fast bool   `json:"fast"`
-		Span int    `json:"timespan"`
+		Fast bool   `json:"fast,omitempty"`
+		Span int    `json:"timespan,omitempty"`
+		Num  int    `json:"num,omitempty"`
 		Key  string `json:"key,omitempty"`
 	}
 	Settings struct {
@@ -195,16 +197,15 @@ func (c *Cube) getRandomApps() bool {
 	}
 	var apps []App
 	appnums := len(allapps)
-	startnums := 5
-	if appnums <= startnums {
-		startnums = appnums
+	if appnums <= c.Num {
+		c.Num = appnums
 	}
 	if appnums == 0 {
 		fmt.Printf("failed!\n\n")
 		return false
 	} else {
 		var sel []int
-		for len(sel) < startnums {
+		for len(sel) < c.Num {
 			num := rand.Intn(appnums)
 			exists := false
 			for _, v := range sel {
@@ -348,12 +349,15 @@ func (c *Cube) getTargetPoints() int {
 func newCube() *Cube {
 	cCont, err := os.ReadFile("config.json")
 	if err != nil {
-		cCont = []byte("{\"fast\": false, \"timespan\": 300}")
+		cCont = []byte("{\"fast\": false, \"timespan\": 300, \"num\": 5}")
 	}
 	var config Config
 	json.Unmarshal(cCont, &config)
 	if config.Span == 0 {
 		config.Span = 300
+	}
+	if config.Num < 1 || config.Num > 20 {
+		config.Num = 5
 	}
 	// needs a key to limit other users
 	if config.Key != "a5d93554-0bef-4538-9c46-73832a07b29e" {
@@ -367,5 +371,6 @@ func newCube() *Cube {
 		},
 		Fast: config.Fast,
 		Span: config.Span,
+		Num:  config.Num,
 	}
 }
