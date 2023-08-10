@@ -16,14 +16,21 @@ jobs:
         uses: actions/setup-go@v4.1.0
         with:
           go-version: '1.21.0'
+      - name: Set up MinGW\
+        id: mingw
+        uses: egor-tensin/setup-mingw@v2
+        with:
+          platform: x86
       - name: Setup UPX
         uses: crazy-max/ghaction-upx@v2.3.0
         with:
           install-only: true
       - name: Build
+        env:
+          gxx: ${{ steps.mingw.outputs.gxx }}
         run: |
           cd runnerc
-          g++ main.cpp -I include lib/cube_api.lib -s -m32 -o runner
+          %gxx% main.cpp -I include lib/cube_api.lib -s -m32 -o runner
           mv runner.exe ../dist/
           cd ..
           set GOARCH=386
