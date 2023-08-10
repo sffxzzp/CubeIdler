@@ -24,12 +24,10 @@ jobs:
         with:
           platform: x86
       - name: C++ build
-        env:
-          gxx: ${{ steps.mingw.outputs.gxx }}
         run: |
           sudo apt install upx
           cd runnerc
-          ${gxx} main.cpp -I include lib/cube_api.lib -s -m32 -o runner.exe
+          i686-w64-mingw32-g++ main.cpp -I include lib/cube_api.lib -s -m32 -o runner.exe
           mv runner.exe ../dist
           upx -9 -vf --lzma --compress-icons=0 *.exe
           cd ..
