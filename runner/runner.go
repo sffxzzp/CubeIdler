@@ -14,6 +14,8 @@ type (
 	}
 )
 
+var dllFile = "cube_api64.dll"
+
 func getArgsData() (int, string) {
 	if len(os.Args) != 3 {
 		fmt.Println("Usage: CubeIdler <appid> <name>")
@@ -26,7 +28,7 @@ func getArgsData() (int, string) {
 
 func newCube() *cube {
 	return &cube{
-		DLL: syscall.NewLazyDLL("cube_api64.dll"),
+		DLL: syscall.NewLazyDLL(dllFile),
 	}
 }
 

@@ -336,7 +336,7 @@ func (c *Cube) sendAppTime() {
 func (c *Cube) getTargetPoints() int {
 	var target string
 	// seems the limit is lower from 303 to 153, so i set the default to 150.
-	tPoints := 150
+	tPoints := 153
 	fmt.Printf("Target points: ")
 	fmt.Scanln(&target)
 	res, err := strconv.Atoi(target)
