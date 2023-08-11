@@ -35,7 +35,7 @@ jobs:
           go build -ldflags="-s -w"
           mv cubeidler.exe ./dist/
           cd dist
-          upx -9 -vf --lzma --compress-icons=0 *.exe
+          upx --brute *.exe
           cd ..
       - name: Upload artifact
         uses: actions/upload-artifact@v3
