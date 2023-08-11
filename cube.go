@@ -338,7 +338,7 @@ func (c *Cube) sendAppTime() {
 func newCube() *Cube {
 	cCont, err := os.ReadFile("config.json")
 	if err != nil {
-		cCont = []byte("{\"fast\": false, \"timespan\": 300, \"num\": 5}")
+		cCont = []byte("{\"fast\": false, \"timespan\": 300, \"num\": 5, \"target\": 153}")
 	}
 	var config Config
 	json.Unmarshal(cCont, &config)
