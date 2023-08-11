@@ -31,12 +31,14 @@ type (
 		Fast       bool
 		Span       int
 		Num        int
+		Target     int
 	}
 	Config struct {
-		Fast bool   `json:"fast,omitempty"`
-		Span int    `json:"timespan,omitempty"`
-		Num  int    `json:"num,omitempty"`
-		Key  string `json:"key,omitempty"`
+		Fast   bool   `json:"fast,omitempty"`
+		Span   int    `json:"timespan,omitempty"`
+		Num    int    `json:"num,omitempty"`
+		Key    string `json:"key,omitempty"`
+		Target int    `json:"target,omitempty"`
 	}
 	Settings struct {
 		Account SettingsAccount `json:"account"`
@@ -333,19 +335,6 @@ func (c *Cube) sendAppTime() {
 	wg.Wait()
 }
 
-func (c *Cube) getTargetPoints() int {
-	var target string
-	// seems the limit is lower from 303 to 153, so i set the default to 150.
-	tPoints := 153
-	fmt.Printf("Target points: ")
-	fmt.Scanln(&target)
-	res, err := strconv.Atoi(target)
-	if err == nil {
-		tPoints = res
-	}
-	return tPoints
-}
-
 func newCube() *Cube {
 	cCont, err := os.ReadFile("config.json")
 	if err != nil {
@@ -359,6 +348,9 @@ func newCube() *Cube {
 	if config.Num < 1 || config.Num > 20 {
 		config.Num = 5
 	}
+	if config.Target == 0 {
+		config.Target = 153
+	}
 	// needs a key to limit other users
 	if config.Key != "a5d93554-0bef-4538-9c46-73832a07b29e" {
 		config.Span = 300
@@ -369,8 +361,9 @@ func newCube() *Cube {
 		Client: &http.Client{
 			Jar: jar,
 		},
-		Fast: config.Fast,
-		Span: config.Span,
-		Num:  config.Num,
+		Fast:   config.Fast,
+		Span:   config.Span,
+		Num:    config.Num,
+		Target: config.Target,
 	}
 }
