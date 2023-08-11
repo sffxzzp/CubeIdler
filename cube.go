@@ -11,8 +11,8 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -27,18 +27,17 @@ type (
 		Account    LoginAccount
 		Login      LoginData
 		RandomApps []App
+		C          string
 		Points     int
 		Fast       bool
 		Span       int
 		Num        int
-		Target     int
 	}
 	Config struct {
-		Fast   bool   `json:"fast,omitempty"`
-		Span   int    `json:"timespan,omitempty"`
-		Num    int    `json:"num,omitempty"`
-		Key    string `json:"key,omitempty"`
-		Target int    `json:"target,omitempty"`
+		Fast bool   `json:"fast,omitempty"`
+		Span int    `json:"timespan,omitempty"`
+		Num  int    `json:"num,omitempty"`
+		Key  string `json:"key,omitempty"`
 	}
 	Settings struct {
 		Account SettingsAccount `json:"account"`
@@ -99,6 +98,27 @@ type (
 		T         int    `json:"t,omitempty"`
 		SessionID int    `json:"sessionId,omitempty"`
 		Status    string `json:"status,omitempty"`
+	}
+	PointsPostData struct {
+		C        string `json:"c"`
+		Page     int    `json:"page"`
+		Size     int    `json:"size"`
+		DataFrom int    `json:"datafrom"`
+		Key      int    `json:"key"`
+		Sign     string `json:"sign"`
+	}
+	PointsResData struct {
+		TotalCount int             `json:"totalcount"`
+		List       []PointsResItem `json:"list"`
+	}
+	PointsResItem struct {
+		ID      int    `json:"id"`
+		Point   int    `json:"point"`
+		IsAdd   int    `json:"isadd"`
+		UplID   int    `json:"uplid"`
+		Remarks string `json:"remarks"`
+		Name    string `json:"name"`
+		AddTime string `json:"addtime"`
 	}
 )
 
@@ -234,6 +254,16 @@ func (c *Cube) getCookie() bool {
 	fmt.Printf("Login...")
 	cookieUrl := fmt.Sprintf("https://account.cubejoy.com/index/LoginTransfers?name=%s&pwd=%s&redirectUrl=https://store.cubejoy.com/html/en/store/boxindex/wideindex.html&token=%s&logininit=true", c.Login.ID, c.Login.Pwd, c.Login.Token)
 	res := c.httpGet(cookieUrl)
+	pointsUrl, _ := url.Parse("https://trade.cubejoy.com/GoldCube/PointProduceList")
+	cookies := c.Client.Jar.Cookies(pointsUrl)
+	var values []string
+	for _, cookie := range cookies {
+		if cookie.Name == "AllCookie" {
+			values = strings.Split(cookie.Value, "|")
+			break
+		}
+	}
+	c.C, _ = url.QueryUnescape(values[1])
 	// if login failed, it'll return "登录失败，用户名密码或错误", and appearently not an html page
 	if len(res) < 100 {
 		fmt.Printf("failed!\n\n")
@@ -264,21 +294,28 @@ func (c *Cube) openBoxes() bool {
 }
 
 func (c *Cube) getPoints() {
-	fmt.Printf("Get current points...")
-	if c.Login.DesUserID == "" {
-		res := c.httpGet("https://account.cubejoy.com/BUsers/UserInfo")
-		regex := regexp.MustCompile(`id="desuserid" ?value="([A-Za-z0-9]*?)"`)
-		match := regex.FindStringSubmatch(string(res))
-		if len(match) != 2 {
-			return
-		}
-		c.Login.DesUserID = match[1]
+	fmt.Printf("Get today points...")
+	postData := PointsPostData{
+		C:        c.C,
+		Page:     1,
+		Size:     10,
+		DataFrom: 1,
+		Key:      10001,
+		Sign:     "",
 	}
-	res := c.httpGet("https://me.cubejoy.com/api/PersionalCenter/UserPointJsonp?duserid=" + c.Login.DesUserID)
-	res = res[1 : len(res)-1]
-	points, _ := strconv.Atoi(string(res))
-	fmt.Printf("%d\n\n", points)
-	c.Points = points
+	jsonPostData, _ := json.Marshal(postData)
+	res := c.httpPost("https://trade.cubejoy.com/GoldCube/PointProduceList", "application/json;charset=UTF-8", bytes.NewBuffer(jsonPostData))
+	var data PointsResData
+	json.Unmarshal(res, &data)
+	c.Points = 0
+	for _, item := range data.List {
+		addtime, _ := time.ParseInLocation("2006-01-02 15:04:05", item.AddTime, time.Local)
+		now := time.Now().Local()
+		if item.UplID == 2 && (addtime.Year() == now.Year() && addtime.Month() == now.Month() && addtime.Day() == now.Day()) {
+			c.Points = item.Point
+		}
+	}
+	fmt.Printf("%d\n\n", c.Points)
 }
 
 func (c *Cube) idle() {
@@ -338,7 +375,7 @@ func (c *Cube) sendAppTime() {
 func newCube() *Cube {
 	cCont, err := os.ReadFile("config.json")
 	if err != nil {
-		cCont = []byte("{\"fast\": false, \"timespan\": 300, \"num\": 5, \"target\": 153}")
+		cCont = []byte("{\"fast\": false, \"timespan\": 300, \"num\": 5}")
 	}
 	var config Config
 	json.Unmarshal(cCont, &config)
@@ -347,9 +384,6 @@ func newCube() *Cube {
 	}
 	if config.Num < 1 || config.Num > 20 {
 		config.Num = 5
-	}
-	if config.Target == 0 {
-		config.Target = 153
 	}
 	// needs a key to limit other users
 	if config.Key != "a5d93554-0bef-4538-9c46-73832a07b29e" {
@@ -361,9 +395,8 @@ func newCube() *Cube {
 		Client: &http.Client{
 			Jar: jar,
 		},
-		Fast:   config.Fast,
-		Span:   config.Span,
-		Num:    config.Num,
-		Target: config.Target,
+		Fast: config.Fast,
+		Span: config.Span,
+		Num:  config.Num,
 	}
 }

@@ -31,17 +31,12 @@ func start() {
 					time.Sleep(time.Duration(cube.Span) * time.Second)
 				}
 			} else {
-				startPoints := int(cube.Points)
-				for cube.Points-startPoints < cube.Target {
+				// set target to 153.
+				for cube.Points < 153 {
 					cube.sendAppTime()
 					fmt.Printf("Waiting for %d seconds, be patient...\n", cube.Span)
 					time.Sleep(time.Duration(cube.Span) * time.Second)
 					cube.getPoints()
-					fmt.Printf("%d => %d | %d\n", startPoints, cube.Points, cube.Points-startPoints)
-					if cube.Points-startPoints == 0 {
-						// if no points increased, that today may have already idled, quit.
-						break
-					}
 				}
 			}
 		}
