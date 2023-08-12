@@ -1,10 +1,8 @@
-#include <iostream>
-#include <iomanip>
-#include <cstdlib>
+#include <stdio.h>
+#include <stdlib.h>
 #include <cube/cube_api.h>
 
 int main(int argc, char* argv[]) {
-	using namespace std;
 	int appid;
 	char* name;
 	if (argc == 2 || argc == 3) {
@@ -19,5 +17,5 @@ int main(int argc, char* argv[]) {
 	if (!Cube::CubeInitialize()) {
 		return 0;
 	}
-	cout << "Game " << std::setw(8) << appid << ": " << name << " running...";
+	printf("Game %8d: %s running...", appid, name);
 }

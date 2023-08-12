@@ -46,6 +46,6 @@ func start() {
 func main() {
 	start()
 	var exit string
-	fmt.Println("Press enter to exit...")
+	fmt.Printf("Press enter to exit...")
 	fmt.Scanln(&exit)
 }

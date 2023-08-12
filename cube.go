@@ -242,7 +242,7 @@ func (c *Cube) getRandomApps() bool {
 			}
 		}
 		for _, app := range apps {
-			fmt.Printf("%08d %s\n", app.ID, app.Name)
+			fmt.Printf("%8d %s\n", app.ID, app.Name)
 		}
 		fmt.Printf("\n\n")
 		c.RandomApps = apps
@@ -325,7 +325,7 @@ func (c *Cube) idle() {
 		wg.Add(1)
 		go func(app App) {
 			defer wg.Done()
-			fmt.Printf("Loading %08d:%s...\n", app.ID, app.Name)
+			fmt.Printf("Loading %8d:%s...\n", app.ID, app.Name)
 			res, err := exec.Command("./runner.exe", strconv.Itoa(app.ID), app.Name).Output()
 			if err != nil {
 				fmt.Println(err)
