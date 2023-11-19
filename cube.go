@@ -35,11 +35,10 @@ type (
 		Idle       bool
 	}
 	Config struct {
-		Fast bool   `json:"fast,omitempty"`
-		Span int    `json:"timespan,omitempty"`
-		Num  int    `json:"num,omitempty"`
-		Key  string `json:"key,omitempty"`
-		Idle bool   `json:"idle,omitempty"`
+		Fast bool `json:"fast,omitempty"`
+		Span int  `json:"timespan,omitempty"`
+		Num  int  `json:"num,omitempty"`
+		Idle bool `json:"idle,omitempty"`
 	}
 	Settings struct {
 		Account SettingsAccount `json:"account"`
