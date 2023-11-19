@@ -32,12 +32,14 @@ type (
 		Fast       bool
 		Span       int
 		Num        int
+		Idle       bool
 	}
 	Config struct {
 		Fast bool   `json:"fast,omitempty"`
 		Span int    `json:"timespan,omitempty"`
 		Num  int    `json:"num,omitempty"`
 		Key  string `json:"key,omitempty"`
+		Idle bool   `json:"idle,omitempty"`
 	}
 	Settings struct {
 		Account SettingsAccount `json:"account"`
@@ -375,19 +377,15 @@ func (c *Cube) sendAppTime() {
 func newCube() *Cube {
 	cCont, err := os.ReadFile("config.json")
 	if err != nil {
-		cCont = []byte("{\"fast\": false, \"timespan\": 300, \"num\": 5}")
+		cCont = []byte("{\"fast\": false, \"timespan\": 300, \"num\": 5, \"idle\": false}")
 	}
 	var config Config
 	json.Unmarshal(cCont, &config)
-	if config.Span == 0 {
+	if config.Span < 10 {
 		config.Span = 300
 	}
 	if config.Num < 1 || config.Num > 20 {
 		config.Num = 5
-	}
-	// needs a key to limit other users
-	if config.Key != "a5d93554-0bef-4538-9c46-73832a07b29e" {
-		config.Span = 300
 	}
 	jar, _ := cookiejar.New(nil)
 	return &Cube{
@@ -398,5 +396,6 @@ func newCube() *Cube {
 		Fast: config.Fast,
 		Span: config.Span,
 		Num:  config.Num,
+		Idle: config.Idle,
 	}
 }

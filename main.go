@@ -21,23 +21,25 @@ func start() {
 		cube.openBoxes()
 		cube.getPoints()
 	}
-	if cube.getRandomApps() {
-		cube.idle()
-		if cube.Fast {
-			if skip {
+	if cube.Idle {
+		if cube.getRandomApps() {
+			cube.idle()
+			if cube.Fast {
+				// if skip {
 				for i := 0; i < 20; i++ {
 					cube.sendAppTime()
 					fmt.Printf("Waiting for %d seconds, be patient...\n", cube.Span)
 					time.Sleep(time.Duration(cube.Span) * time.Second)
 				}
-			} else {
-				// set target to 153.
-				for cube.Points < 153 {
-					cube.sendAppTime()
-					fmt.Printf("Waiting for %d seconds, be patient...\n", cube.Span)
-					time.Sleep(time.Duration(cube.Span) * time.Second)
-					cube.getPoints()
-				}
+				// } else {
+				// 	// set target to 153.
+				// 	for cube.Points < 153 {
+				// 		cube.sendAppTime()
+				// 		fmt.Printf("Waiting for %d seconds, be patient...\n", cube.Span)
+				// 		time.Sleep(time.Duration(cube.Span) * time.Second)
+				// 		cube.getPoints()
+				// 	}
+				// }
 			}
 		}
 	}
